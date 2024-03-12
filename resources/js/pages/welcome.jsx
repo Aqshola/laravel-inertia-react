@@ -15,7 +15,7 @@ export default function Welcome() {
     return (
         <>
         <Head>
-            <title>Welcome Page</title>
+            <title>Welcome Page Inertia React</title>
         </Head>
         <Flex style={STYLING.flexContainerStyle} justify="center" align="center" vertical>
             <Typography.Title level={5} style={STYLING.headingStyle}>Welcome to Larvel Inertia React</Typography.Title>
