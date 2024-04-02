@@ -1,49 +1,28 @@
-# ADD BASE IMAGE PHP
-FROM php:apache-buster
+# Use the official PHP-FPM image as the base image
+FROM php:8.2-fpm
 
-LABEL author="AQF"
-
-ENV ACCEPT_EULA=Y
-
-
-# UTILITY INSTALL
-RUN apt-get update && apt-get install -y gnupg2 && apt-get install -y apt-transport-https && apt install -y git \
-    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
-	&& apt-get install -y unixodbc-dev
-
-
-# CONFIGURE OPEN SSL
-RUN cp /etc/ssl/openssl.cnf /etc/ssl/openssl.cnf.ORI && \
-    sed -i "s/\(MinProtocol *= *\).*/\1TLSv1.0 /" "/etc/ssl/openssl.cnf" && \
-    sed -i "s/\(CipherString *= *\).*/\1DEFAULT@SECLEVEL=1 /" "/etc/ssl/openssl.cnf" && \
-    (diff -u /etc/ssl/openssl.cnf.ORI /etc/ssl/openssl.cnf || exit 0)
-
-# CONFIGURE APACHE HTACCESS
-RUN a2enmod rewrite
-
-
-# CONFIGURE COMPOSER
-RUN set -eux && apt-get update && apt-get install -y libzip-dev zlib1g-dev && docker-php-ext-install zip
-RUN curl -sS https://getcomposer.org/installer | php
-RUN mv composer.phar /usr/bin/composer
-
-# NODE INSTALL
-RUN curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
-RUN bash nodesource_setup.sh
-RUN apt-get install nodejs -y
-
-#COPY PACKAGE JSON
+# Set the working directory in the container
 WORKDIR /var/www/html
-COPY package.json .
 
-#INSTALL PACKAGE
-RUN npm install
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip
 
-#COPY ALL FILE
-COPY . /var/www/html/
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_mysql
 
-EXPOSE 3000
-# CMD [ "npm","run","dev" ]
+# Install Composer globally
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Copy Laravel files to the container
+COPY . .
+
+# Install application dependencies
+RUN composer install
+
+# Expose port 9000 to the host
+EXPOSE 9000
+
+# Start PHP-FPM server
+CMD ["php-fpm"]
